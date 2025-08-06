@@ -1,12 +1,29 @@
 
+import { db } from '../db';
+import { filesTable } from '../db/schema';
 import { type GetFileByTokenInput, type FileRecord } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function getFileByToken(input: GetFileByTokenInput): Promise<FileRecord | null> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to:
-    // 1. Query the database for a file record matching the provided token
-    // 2. Return the file record if found, null if not found
-    // 3. This will be used to serve the actual file content
-    
-    return null; // Placeholder - should return file record or null
-}
+export const getFileByToken = async (input: GetFileByTokenInput): Promise<FileRecord | null> => {
+  try {
+    // Query database for file with matching token
+    const results = await db.select()
+      .from(filesTable)
+      .where(eq(filesTable.upload_token, input.token))
+      .execute();
+
+    // Return first result or null if not found
+    if (results.length === 0) {
+      return null;
+    }
+
+    const file = results[0];
+    return {
+      ...file,
+      file_size: Number(file.file_size) // Convert bigint to number for consistency
+    };
+  } catch (error) {
+    console.error('File lookup by token failed:', error);
+    throw error;
+  }
+};

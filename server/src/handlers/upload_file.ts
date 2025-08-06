@@ -1,17 +1,32 @@
 
+import { db } from '../db';
+import { filesTable } from '../db/schema';
 import { type UploadFileInput, type UploadResponse } from '../schema';
 
-export async function uploadFile(input: UploadFileInput): Promise<UploadResponse> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to:
-    // 1. Save the uploaded file to the persistent 'uploads' directory
-    // 2. Store file metadata in the database with a unique token
-    // 3. Return the file access URL with the dynamic base URL
-    // 4. Generate a unique token for file access
+export const uploadFile = async (input: UploadFileInput): Promise<UploadResponse> => {
+  try {
+    // Insert file record into database
+    const result = await db.insert(filesTable)
+      .values({
+        filename: input.filename,
+        original_filename: input.original_filename,
+        file_path: input.file_path,
+        file_size: input.file_size,
+        mime_type: input.mime_type,
+        upload_token: input.upload_token
+      })
+      .returning()
+      .execute();
+
+    const fileRecord = result[0];
     
     return {
-        success: true,
-        file_url: `http://localhost:2022/file/${input.upload_token}`, // Placeholder URL
-        token: input.upload_token
+      success: true,
+      file_url: `http://localhost:2022/file/${fileRecord.upload_token}`,
+      token: fileRecord.upload_token
     };
-}
+  } catch (error) {
+    console.error('File upload failed:', error);
+    throw error;
+  }
+};

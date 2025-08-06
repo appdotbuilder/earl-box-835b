@@ -1,7 +1,6 @@
 
 import { initTRPC } from '@trpc/server';
 import { createHTTPServer } from '@trpc/server/adapters/standalone';
-import 'dotenv/config';
 import cors from 'cors';
 import superjson from 'superjson';
 import { uploadFileInputSchema, getFileByTokenInputSchema } from './schema';
@@ -45,7 +44,7 @@ const appRouter = router({
 export type AppRouter = typeof appRouter;
 
 async function start() {
-  const port = process.env['SERVER_PORT'] || 2022;
+  const port = 2022;
   const server = createHTTPServer({
     middleware: (req, res, next) => {
       cors()(req, res, next);
