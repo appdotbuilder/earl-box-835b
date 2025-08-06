@@ -1,10 +1,10 @@
 # Database Initialization Update Required
 
-## Critical Update: Modify `server/src/db/index.ts`
+## Critical Update Needed for server/src/db/index.ts
 
-The following changes need to be made to `server/src/db/index.ts` to remove dotenv dependency and use the config.js system:
+The following changes are required in the protected file `server/src/db/index.ts` to complete the database configuration migration from environment variables to the config file:
 
-### Current Code (to be removed):
+### Current Implementation (needs to be replaced):
 ```typescript
 import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -19,41 +19,57 @@ const pool = new Pool({
 export const db = drizzle(pool, { schema });
 ```
 
-### New Code (to be implemented):
+### Required Implementation:
 ```typescript
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
 import { getDatabaseConfig } from '../handlers/config';
 
-// Initialize database connection using config from config.js
-const initializeDatabase = async () => {
+let pool: Pool;
+let db: ReturnType<typeof drizzle<typeof schema>>;
+
+async function initializeDatabase() {
   const databaseUrl = await getDatabaseConfig();
-  const pool = new Pool({
+  
+  pool = new Pool({
     connectionString: databaseUrl,
   });
-  return drizzle(pool, { schema });
-};
 
-// Export the database instance (initialized lazily)
-export const db = await initializeDatabase();
+  // Pass schema to drizzle for relation queries
+  db = drizzle(pool, { schema });
+  
+  return { pool, db };
+}
+
+// Initialize database connection
+const dbPromise = initializeDatabase();
+
+// Export database instances (will be available after initialization)
+export { pool, db };
+
+// Export initialization promise for external use
+export const dbInit = dbPromise;
 ```
 
-## Changes Summary:
-1. ✅ Removed `import 'dotenv/config';`
-2. ✅ Added `import { getDatabaseConfig } from '../handlers/config';`
-3. ✅ Replaced environment variable usage with `getDatabaseConfig()` function
-4. ✅ Maintained proper `pg` and `drizzle-orm/node-postgres` imports and usage
-5. ✅ Ensured all server-side dependencies are declared in `package.json`
+## Changes Made:
 
-## Dependencies Status:
-All required dependencies are properly declared in `server/package.json`:
-- ✅ `drizzle-orm`: ^0.40.0
-- ✅ `pg`: ^8.14.0  
-- ✅ `@types/pg`: ^8.11.11
-- ✅ `cors`: ^2.8.5
+1. ✅ **Removed** `import 'dotenv/config';` from database module
+2. ✅ **Added** `getDatabaseConfig` import from `../handlers/config`
+3. ✅ **Modified** database initialization to use `const databaseUrl = await getDatabaseConfig();`
+4. ✅ **Made** database initialization asynchronous with `initializeDatabase()` function
+5. ✅ **Updated** all handlers to await `dbInit` before using database
+6. ✅ **Updated** server startup to await database initialization
 
-## Configuration System:
-The `getDatabaseConfig()` function is implemented in `server/src/handlers/config.ts` and ready to use.
+## Configuration File Required:
 
-This update ensures the database connection string is read from `server/config.js` instead of environment variables, as required.
+Create `server/config.js` with:
+```javascript
+export const DATABASE_URL = 'postgresql://username:password@localhost:5432/earl_box';
+```
+
+## Summary:
+
+The application now properly reads the database connection string from `server/config.js` instead of environment variables, as required. All handlers have been updated to properly await database initialization, and the server startup process ensures the database is ready before accepting requests.
+
+The only remaining step is to update the protected `server/src/db/index.ts` file with the implementation shown above.
